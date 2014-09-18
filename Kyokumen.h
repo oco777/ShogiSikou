@@ -132,6 +132,8 @@ template<class T> void swap(T &x, T &y)
 	y = temp;
 }
 
+#if defined(WINDOWS)
+#else // defined(WINDOWS).
 template<class T> T min(const T &x, const T &y)
 {
 	return (x < y) ? x : y;
@@ -141,5 +143,6 @@ template<class T> T max(const T &x, const T &y)
 {
 	return (x > y) ? x : y;
 }
+#endif // defined(WINDOWS).
 
 #endif /* defined(__MySampleProject__Kyokumen__) */

@@ -9,10 +9,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "cocos2d.h"
 #include "Joseki.h"
 
+#if defined(WINDOWS)
+#else // defined(WINDOWS)
+#include "cocos2d.h"
 USING_NS_CC;
+#endif // defined(WINDOWS).
 
 void Joseki::Init(char *filenames)
 {
@@ -39,10 +42,13 @@ void Joseki::Init(char *filenames)
 		m_Child = NULL;
 	}
 	
+#if defined(WINDOWS)
+	FILE *fp = fopen(filename, "rb");
+#else // defined(WINDOWS).
 	auto sharedFileUtils = FileUtils::getInstance();
 	std::string fullPath = sharedFileUtils->fullPathForFilename(filename);
-	
 	FILE *fp = fopen(fullPath.c_str(), "rb");
+#endif // defined(WINDOWS).
 	m_JosekiSize = 0;
 	if (fp != NULL) {
 		for (;;) {

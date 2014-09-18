@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "TypeDefs.h"
+#include "ShogiDefs.h"
 #include "KomaInf.h"
 
 class Kyokumen;
@@ -51,6 +52,21 @@ public:
 	
 	void Print() { FPrint(stdout); }
 	void FPrint(FILE *fp);
+	
+#if defined(WINDOWS)
+	// CSA将棋.
+	int CSAloc(int x) const { return (x & 0x0f)*9 + (x/16) - 9;}
+	int CSAmoto() const { 
+		if (IS_BANPOS(m_From)) {
+			return CSAloc(m_From);
+		}
+		else {
+			return 100 + (m_Koma & ~ENEMY & ~SELF);
+		}
+	}
+	int CSAsaki() const { return CSAloc(m_To); }
+	int CSApromote() const { return m_Promote; }
+#endif // defined(WINDOWS).
 };
 
 #endif /* defined(__MySampleProject__Te__) */

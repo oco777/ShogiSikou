@@ -9,7 +9,12 @@
 #ifndef __MySampleProject__Sikou__
 #define __MySampleProject__Sikou__
 
+#if defined(WINDOWS)
+#include <time.h>
+#else // defined(WINDOWS).
 #include <chrono>
+#endif // defined(WINDOWS).
+
 #include "ShogiDefs.h"
 #include "Te.h"
 #include "KyokumenKomagumi.h"
@@ -57,7 +62,11 @@ public:
 
 class Sikou {
 private:
+#if defined(WINDOWS)
+	time_t m_ThinkStart;
+#else // defined(WINDOWS).
 	std::chrono::system_clock::time_point m_ThinkStart;
+#endif // defined(WINDOWS).
 	
 	static HashEntry m_HashTbl[HASHTBL_SIZE];
 	static Joseki m_Joseki;

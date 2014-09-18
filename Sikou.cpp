@@ -7,9 +7,19 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "Sikou.h"
 #include "TsumeHash.h"
+
+#if defined(WINDOWS)
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <fstream.h>
+extern int volatile *ChudanFlag;
+#endif // defined(WINDOWS).
 
 HashEntry Sikou::m_HashTbl[HASHTBL_SIZE];
 Joseki Sikou::m_Joseki;
@@ -55,7 +65,11 @@ Te Sikou::Think(Teban teban, KyokumenKomagumi k, const Kyokumen &kForJoseki)
 #endif // defined(DEBUG_PRINT).
 	
 //	TsumeHash::Clear();
+#if defined(WINDOWS)
+	m_ThinkStart = time(NULL);
+#else // defined(WINDOWS).
 	m_ThinkStart = std::chrono::system_clock::now();
+#endif // defined(WINDOWS).
 	
 	int i, j;
 	if (k.IsUseJoseki()) {
@@ -86,12 +100,16 @@ Te Sikou::Think(Teban teban, KyokumenKomagumi k, const Kyokumen &kForJoseki)
 		}
 	}
 //	int bestVal = MinMax(teban, k, 0, depthMax);	// 三手読み+駒取り.
-//	int bestVal = AlphaBeta(teban, k, -INFINITE, INFINITE, 0, depthMax);	// 三手読み+駒取り.
-//	int bestVal = NegaAlphaBeta(teban, k, -INFINITE, INFINITE, 0, depthMax);	// 三手読み+駒取り.
-	int bestVal = ITDeep(teban, k, -INFINITE+1, INFINITE-1, 0, depthMax);	// 三手読み+駒取り.
+//	int bestVal = AlphaBeta(teban, k, -VAL_INFINITE, VAL_INFINITE, 0, depthMax);	// 三手読み+駒取り.
+//	int bestVal = NegaAlphaBeta(teban, k, -VAL_INFINITE, VAL_INFINITE, 0, depthMax);	// 三手読み+駒取り.
+	int bestVal = ITDeep(teban, k, -VAL_INFINITE+1, VAL_INFINITE-1, 0, depthMax);	// 三手読み+駒取り.
 	
 #if defined(DEBUG_PRINT)
+#if defined(WINDOWS)
+	time_t ms = (time(NULL) - m_ThinkStart) * 1000;
+#else // defined(WINDOWS).
 	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_ThinkStart);
+#endif // defined(WINDOWS).
 	printf("[%d]手目 bestVal[%d] %lldms\n", tesu, bestVal, ms.count());
 	for (i=0; i < depthMax; i++) {
 		Best[0][i].Print();
@@ -115,10 +133,10 @@ int Sikou::MinMax(Teban teban, KyokumenKomagumi k, int depth, int depthMax)
 	if (teNum == 0) {
 		// 負け.
 		if (teban == SELF) {
-			return -INFINITE;
+			return -VAL_INFINITE;
 		}
 		else {
-			return INFINITE;
+			return VAL_INFINITE;
 		}
 	}
 	// 乱数性を持たせるためにシャッフル
@@ -127,10 +145,10 @@ int Sikou::MinMax(Teban teban, KyokumenKomagumi k, int depth, int depthMax)
 	//	}
 	int retval;
 	if (teban == SELF) {
-		retval = -INFINITE-1;
+		retval = -VAL_INFINITE-1;
 	}
 	else {
-		retval = +INFINITE+1;
+		retval = +VAL_INFINITE+1;
 	}
 	for (i=0; i < teNum; i++) {
 		KyokumenKomagumi kk(k);
@@ -159,10 +177,10 @@ int Sikou::AlphaBeta(Teban teban, KyokumenKomagumi k, int alpha, int beta, int d
 	if (teNum == 0) {
 		// 負け.
 		if (teban == SELF) {
-			return -INFINITE;
+			return -VAL_INFINITE;
 		}
 		else {
-			return INFINITE;
+			return VAL_INFINITE;
 		}
 	}
 	//	// 乱数性を持たせるためにシャッフル.
@@ -171,10 +189,10 @@ int Sikou::AlphaBeta(Teban teban, KyokumenKomagumi k, int alpha, int beta, int d
 	//	}
 	int retval;
 	if (teban == SELF) {
-		retval = -INFINITE-1;
+		retval = -VAL_INFINITE-1;
 	}
 	else {
-		retval = +INFINITE+1;
+		retval = +VAL_INFINITE+1;
 	}
 	for (i=0; i < teNum; i++) {
 		KyokumenKomagumi kk(k);
@@ -202,6 +220,19 @@ int Sikou::AlphaBeta(Teban teban, KyokumenKomagumi k, int alpha, int beta, int d
 
 int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, int depth, int depthMax, bool bITDeep)
 {
+	if (*ChudanFlag != 0) {
+		return -VAL_INFINITE;
+	}
+	if (depth == depthMax-1) {
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			if (msg.message == WM_QUIT) {
+				break;
+			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
 	if (depth == 1) {
 		int sennitite = 0;
 		int teNum;
@@ -219,7 +250,7 @@ int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, 
 				if (k.GetHashHistory(teNum) == k.GetHashVal()) {
 					sennitite++;
 					if (sennitite >= SENNITITE_NUM) {
-						return INFINITE;
+						return VAL_INFINITE;
 					}
 				}
 			}
@@ -232,7 +263,7 @@ int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, 
 				if (k.GetHashHistory(teNum) == k.GetHashVal()) {
 					sennitite++;
 					if (sennitite >= SENNITITE_NUM) {
-						return -INFINITE;
+						return -VAL_INFINITE;
 					}
 				}
 			}
@@ -240,7 +271,11 @@ int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, 
 		}
 	}
 	
+#if defined(WINDOWS)
+	bool bTimeout = (time(NULL) > m_ThinkStart + SIKOU_TIMEOUT_SECOND);
+#else // defined(WINDOWS).
 	bool bTimeout = (std::chrono::system_clock::now() > m_ThinkStart + std::chrono::seconds(SIKOU_TIMEOUT_SECOND));
+#endif // defined(WINDOWS).
 	
 	if (bTimeout || depth == depthMax) {
 //		int value = k.GetValue() + k.BestEval(teban);
@@ -292,13 +327,13 @@ if (g_bDebugPrint) {
 	}
 	
 	Te teBuf[MAX_TE_IN_KYOKUMEN];
-	int retval = -INFINITE-1;
+	int retval = -VAL_INFINITE-1;
 	int teNum = 0;
 	
 	if (depth < 2 && k.Mate(teban, MAX_MATE_DEPTH, teBuf[0]) == 1) {
 		Best[depth][depth] = teBuf[0];
 		Best[depth][depth+1] = Te(0);
-		retval = INFINITE+1;
+		retval = VAL_INFINITE+1;
 		goto HASH_ADD;
 	}
 	
@@ -342,11 +377,11 @@ if (g_bDebugPrint) {
 	teNum = k.MakeLegalMoves(teban, teBuf);
 	if (teNum == 0) {
 		// 負け.
-		return -INFINITE;
+		return -VAL_INFINITE;
 	}
 	k.EvaluateTe(teban, teNum, teBuf);
-	for (int i=0; i < teNum; i++) {
-		if (depth > 2 && (teBuf[i].GetValue() < -100 || i > 30) && i > 0 && retval > -INFINITE) {
+	for (i=0; i < teNum; i++) {
+		if (depth > 2 && (teBuf[i].GetValue() < -100 || i > 30) && i > 0 && retval > -VAL_INFINITE) {
 //#if defined(DEBUG_PRINT)
 //if (g_bDebugPrint) {
 //	if (depth < 2) {

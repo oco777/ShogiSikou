@@ -72,7 +72,7 @@ enum {
 #define MIN_SIKOU_DEPTH		(4)
 #define MAX_SIKOU_DEPTH		(8)
 #define MAX_MATE_DEPTH		(7)
-#define INFINITE	(999999)
+#define VAL_INFINITE	(999999)
 #define SIKOU_TIMEOUT_SECOND	(30)
 
 ////////////////////////////
