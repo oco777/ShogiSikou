@@ -220,6 +220,7 @@ int Sikou::AlphaBeta(Teban teban, KyokumenKomagumi k, int alpha, int beta, int d
 
 int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, int depth, int depthMax, bool bITDeep)
 {
+#if defined(WINDOWS)
 	if (*ChudanFlag != 0) {
 		return -VAL_INFINITE;
 	}
@@ -233,6 +234,8 @@ int Sikou::NegaAlphaBeta(Teban teban, KyokumenKomagumi &k, int alpha, int beta, 
 			DispatchMessage(&msg);
 		}
 	}
+#endif // defined(WINDOWS).
+	
 	if (depth == 1) {
 		int sennitite = 0;
 		int teNum;
